@@ -18,13 +18,21 @@ CREATE TABLE IF NOT EXISTS photometry_measurement(frame_id TEXT PRIMARY KEY,sess
 CREATE TABLE IF NOT EXISTS photometry_event(id INTEGER PRIMARY KEY,session_id TEXT,status TEXT,reason TEXT,previous INTEGER);
 CREATE TABLE IF NOT EXISTS photometry_product(session_id TEXT,purpose TEXT,status TEXT,reason TEXT,version INTEGER,PRIMARY KEY(session_id,purpose));
 CREATE TABLE IF NOT EXISTS photometry_product_event(id INTEGER PRIMARY KEY,session_id TEXT,purpose TEXT,status TEXT,reason TEXT,previous INTEGER);
+CREATE TABLE IF NOT EXISTS photometry_intake(session_id TEXT PRIMARY KEY,source_id TEXT,digest TEXT,kind TEXT);
+CREATE TABLE IF NOT EXISTS photometry_comparison(session_id TEXT,star TEXT,catalog_mag REAL,catalog_err REAL,designated INTEGER,status TEXT,reason TEXT,version INTEGER,PRIMARY KEY(session_id,star));
+CREATE TABLE IF NOT EXISTS photometry_frame_star(frame_id TEXT,session_id TEXT,star TEXT,aperture REAL,sky REAL,pixels INTEGER,missing INTEGER,saturated INTEGER,flux REAL,status TEXT,reason TEXT,PRIMARY KEY(frame_id,star));
+CREATE TABLE IF NOT EXISTS photometry_frame_result(frame_id TEXT PRIMARY KEY,session_id TEXT,target_missing INTEGER,target_saturated INTEGER,relative_flux REAL,flux_err REAL,refs TEXT,status TEXT,reason TEXT,version INTEGER);
+CREATE TABLE IF NOT EXISTS photometry_product_detail(session_id TEXT,purpose TEXT,version INTEGER,detail TEXT,PRIMARY KEY(session_id,purpose));
 """
 def connect(path):
     db=sqlite3.connect(path);db.row_factory=sqlite3.Row;db.executescript(SCHEMA);return db
 def read(path):return json.loads(Path(path).read_text(encoding='utf-8'))
+def digest_of(data):
+    raw=json.dumps(data,sort_keys=True,ensure_ascii=False,separators=(',',':'))
+    return hashlib.sha256(raw.encode()).hexdigest()
 def ingest(db,system,data):
     raw=json.dumps(data,sort_keys=True,ensure_ascii=False,separators=(',',':'))
-    digest=hashlib.sha256(raw.encode()).hexdigest();sid=data['source_id']
+    digest=digest_of(data);sid=data['source_id']
     old=db.execute('SELECT digest FROM source WHERE system=? AND source_id=?',(system,sid)).fetchall()
     if any(r['digest']!=digest for r in old):
         db.execute('INSERT INTO source_conflict(system,source_id,digest,payload) VALUES(?,?,?,?)',(system,sid,digest,raw))

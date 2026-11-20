@@ -33,13 +33,19 @@ python -m nightledger report --db sample.sqlite
 
 ## 增强采录起点：逐星测光
 
-`photometry` 接收离线曝光的目标星和单颗比较星孔径计数、天空背景及孔径像素数，保存逐帧差分通量与光变候选状态。它使用既有 `archive_case` 的可归档裁定；时隙或标定变化撤回曝光后，光变结果随之重算并保留事件链。当前仅有单比较星、前两张可用帧作基线的初筛方法，不处理变星比较星、缺测、颜色/大气消光或拥挤星场。
-当夜跟进单和正式测光表分别落在 `photometry_product`，各自有版本与事件链。目前两项都直接沿用单比较星的初筛结果，正式表尚未实现独立参照审核。
+`photometry` 接收离线曝光的目标星孔径计数、天空背景及孔径像素数，保存逐帧差分通量与光变状态。它使用既有 `archive_case` 的可归档裁定；时隙或标定变化撤回曝光后，两项接收结果都会从仍可用帧重算，前后结论分别留在 `photometry_product_event` 事件链上。单比较星旧格式（如 `fixtures/photometry-dip.json`）行为不变。
+
+多比较星采录在会话级 `comparisons` 注册比较星身份与星表锚点（星等及误差），逐帧 `comparisons` 给出各星孔径计数、缺测与饱和标记，同一星在各帧标识一致（未注册的星名直接拒收）。调和时用整夜重叠帧求解零点：成对恒定链（重叠链）筛查比较星自身变化并排除变星，星表锚点提供绝对参照；目标星不参与零点拟合，真正的目标暗化不会被吸收进零点。只有重叠链可辨识、且检验帧拥有至少两颗独立的锚定稳定参照时，正式测光表（`catalogue`）才给出可发布结论；缺少锚点时明确报 `indeterminate` 并说明结论仍取决于哪些比较星假设，不补造确定结果。当夜跟进单（`followup`）始终只是以观测员指定比较星稳定为条件的快览，附补拍建议；两份结果互不替代，各自记录所用参照、误差与适用帧（`photometry_product_detail`）。
 
 ```powershell
 python -m nightledger slot --db photometry.sqlite --input fixtures/slot-ok.json
+python -m nightledger slot --db photometry.sqlite --input fixtures/slot-night-2.json
 python -m nightledger calibration --db photometry.sqlite --input fixtures/calibration-ok.json
-python -m nightledger exposure --db photometry.sqlite --input fixtures/exposure-photometry.json
-python -m nightledger photometry --db photometry.sqlite --input fixtures/photometry-dip.json
+python -m nightledger calibration --db photometry.sqlite --input fixtures/calibration-ok-2.json
+python -m nightledger exposure --db photometry.sqlite --input fixtures/exposure-ensemble.json
+python -m nightledger photometry --db photometry.sqlite --input fixtures/photometry-ensemble.json
+python -m nightledger calibration --db photometry.sqlite --input fixtures/calibration-conflict-2.json
 python -m nightledger report --db photometry.sqlite
 ```
+
+`photometry-ensemble.json` 中 e-3 缺 B、e-4 缺 A，而 C 在后两帧增亮 12%：跟进单以 C 稳定为条件保留有条件暗化线索并要求补拍，正式表经 A/C、B/C 重叠链排除 C 后报无暗化。`photometry-ensemble-blind.json` 的后两帧 A、B 都缺测，两种解释不可区分，正式表报 `indeterminate`。`calibration-conflict-2.json` 撤回 night-2 的两张关键帧后，两项结果都从仍可用帧重算为 `pending`。`photometry-ensemble-dip.json` 演示目标真暗化时正式表确认 `candidate`。
