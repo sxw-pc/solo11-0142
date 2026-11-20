@@ -1,0 +1,1 @@
+"""Offline telescope night ledger."""

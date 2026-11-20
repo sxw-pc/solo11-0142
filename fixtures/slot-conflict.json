@@ -1,0 +1,1 @@
+{"source_id":"slot-overlap","slot":{"id":"night-2","telescope":"scope-A","starts":100,"ends":3000,"plan":"target-Y","priority":1,"altitude_deg":45,"sun_separation_deg":60},"setup":{"id":"setup-2","filter":"R","detector":"D1","temperature":-10,"exposure_ms":1000,"version":1,"signed_at":0},"downtime":[]}

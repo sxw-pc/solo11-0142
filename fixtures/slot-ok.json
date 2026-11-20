@@ -1,0 +1,1 @@
+{"source_id":"slot-v1","slot":{"id":"night-1","telescope":"scope-A","starts":0,"ends":3600,"plan":"target-X","priority":1,"altitude_deg":45,"sun_separation_deg":60},"setup":{"id":"setup-1","filter":"R","detector":"D1","temperature":-10,"exposure_ms":1000,"version":1,"signed_at":-100},"downtime":[]}
